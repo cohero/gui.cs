@@ -11,27 +11,27 @@ using System.IO;
 
 namespace Terminal.Gui {
 	/// <summary>
-	/// An Hex viewer an editor view over a System.IO.Stream
+	/// An hex viewer and editor <see cref="View"/> over a <see cref="System.IO.Stream"/>
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// This provides a hex editor on top of a seekable stream with the left side showing an hex
-	/// dump of the values in the stream and the right side showing the contents (filterd to 
-	/// non-control sequence ascii characters).    
+	/// <see cref="HexView"/> provides a hex editor on top of a seekable <see cref="Stream"/> with the left side showing an hex
+	/// dump of the values in the <see cref="Stream"/> and the right side showing the contents (filterd to 
+	/// non-control sequence ASCII characters).    
 	/// </para>
 	/// <para>
 	/// Users can switch from one side to the other by using the tab key.  
 	/// </para>
 	/// <para>
-	/// If you want to enable editing, set the AllowsEdits property, once that is done, the user
-	/// can make changes to the hexadecimal values of the stream.   Any changes done are tracked
-	/// in the Edits property which is a sorted dictionary indicating the position where the 
-	/// change was made and the new value.    A convenience ApplyEdits method can be used to c
-	/// apply the methods to the underlying stream.
+	/// To enable editing, set <see cref="AllowEdits"/> to true. When <see cref="AllowEdits"/> is true 
+	/// the user can make changes to the hexadecimal values of the <see cref="Stream"/>. Any changes are tracked
+	/// in the <see cref="Edits"/> property (a <see cref="SortedDictionary{TKey, TValue}"/>) indicating 
+	/// the position where the changes were made and the new values. A convenience method, <see cref="ApplyEdits"/>
+	/// will apply the edits to the <see cref="Stream"/>.
 	/// </para>
 	/// <para>
-	/// It is possible to control the first byte shown by setting the DisplayStart property 
-	/// to the offset that you want to start viewing.
+	/// Control the first byte shown by setting the <see cref="DisplayStart"/> property 
+	/// to an offset in the stream.
 	/// </para>
 	/// </remarks>
 	public class HexView : View {
@@ -41,10 +41,10 @@ namespace Terminal.Gui {
 		bool firstNibble, leftSide;
 
 		/// <summary>
-		/// Creates and instance of the HexView that will render a seekable stream in hex on the allocated view region.
+		/// Initialzies a <see cref="HexView"/> class using <see cref="LayoutStyle.Computed"/> layout.
 		/// </summary>
-		/// <param name="source">Source stream, this stream should support seeking, or this will raise an exceotion.</param>
-		public HexView (Stream source) : base()
+		/// <param name="source">The <see cref="Stream"/> to view and edit as hex, this <see cref="Stream"/> must support seeking, or an exception will be thrown.</param>
+		public HexView (Stream source) : base ()
 		{
 			Source = source;
 			this.source = source;
@@ -54,7 +54,12 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		/// The source stream to display on the hex view, the stream should support seeking.
+		/// Initialzies a <see cref="HexView"/> class using <see cref="LayoutStyle.Computed"/> layout.
+		/// </summary>
+		public HexView () : this (source: new MemoryStream ()) { }
+
+		/// <summary>
+		/// Sets or gets the <see cref="Stream"/> the <see cref="HexView"/> is operating on; the stream must support seeking (<see cref="Stream.CanSeek"/> == true).
 		/// </summary>
 		/// <value>The source.</value>
 		public Stream Source {
@@ -82,7 +87,7 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		/// Configures the initial offset to be displayed at the top
+		/// Sets or gets the offset into the <see cref="Stream"/> that will displayed at the top of the <see cref="HexView"/>
 		/// </summary>
 		/// <value>The display start.</value>
 		public long DisplayStart {
@@ -98,6 +103,7 @@ namespace Terminal.Gui {
 		const int bsize = 4;
 		int bytesPerLine;
 
+		/// <inheritdoc/>
 		public override Rect Frame {
 			get => base.Frame;
 			set {
@@ -128,7 +134,8 @@ namespace Terminal.Gui {
 			return buffer [offset];
 		}
 
-		public override void Redraw (Rect region)
+		///<inheritdoc/>
+		public override void Redraw (Rect bounds)
 		{
 			Attribute currentAttribute;
 			var current = ColorScheme.Focus;
@@ -147,9 +154,9 @@ namespace Terminal.Gui {
 
 			for (int line = 0; line < frame.Height; line++) {
 				var lineRect = new Rect (0, line, frame.Width, 1);
-				if (!region.Contains (lineRect))
+				if (!bounds.Contains (lineRect))
 					continue;
-				
+
 				Move (0, line);
 				Driver.SetAttribute (ColorScheme.HotNormal);
 				Driver.AddStr (string.Format ("{0:x8} ", displayStart + line * nblocks * 4));
@@ -195,7 +202,7 @@ namespace Terminal.Gui {
 						SetAttribute (leftSide ? trackingColor : activeColor);
 					else
 						SetAttribute (ColorScheme.Normal);
-					
+
 					Driver.AddRune (c);
 				}
 			}
@@ -210,9 +217,7 @@ namespace Terminal.Gui {
 
 		}
 
-		/// <summary>
-		/// Positions the cursor based for the hex view
-		/// </summary>
+		///<inheritdoc/>
 		public override void PositionCursor ()
 		{
 			var delta = (int)(position - displayStart);
@@ -229,7 +234,7 @@ namespace Terminal.Gui {
 
 		void RedisplayLine (long pos)
 		{
-			var delta = (int) (pos - DisplayStart);
+			var delta = (int)(pos - DisplayStart);
 			var line = delta / bytesPerLine;
 
 			SetNeedsDisplay (new Rect (0, line, Frame.Width, 1));
@@ -277,9 +282,10 @@ namespace Terminal.Gui {
 				SetDisplayStart (DisplayStart + bytes);
 				SetNeedsDisplay ();
 			} else
-				RedisplayLine (position);			
+				RedisplayLine (position);
 		}
 
+		/// <inheritdoc/>
 		public override bool ProcessKey (KeyEvent keyEvent)
 		{
 			switch (keyEvent.Key) {
@@ -310,7 +316,7 @@ namespace Terminal.Gui {
 			case Key.CursorUp:
 				MoveUp (bytesPerLine);
 				break;
-			case Key.Tab:
+			case Key.Enter:
 				leftSide = !leftSide;
 				RedisplayLine (position);
 				firstNibble = true;
@@ -364,19 +370,22 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		/// Gets or sets a value indicating whether this <see cref="T:Terminal.Gui.HexView"/> allow editing of the contents of the underlying stream.
+		/// Gets or sets whether this <see cref="HexView"/> allow editing of the <see cref="Stream"/> 
+		/// of the underlying <see cref="Stream"/>.
 		/// </summary>
 		/// <value><c>true</c> if allow edits; otherwise, <c>false</c>.</value>
 		public bool AllowEdits { get; set; }
 
 		/// <summary>
-		/// Gets a list of the edits done to the buffer which is a sorted dictionary with the positions where the edit took place and the value that was set.
+		/// Gets a <see cref="SortedDictionary{TKey, TValue}"/> describing the edits done to the <see cref="HexView"/>. 
+		/// Each Key indicates an offset where an edit was made and the Value is the changed byte.
 		/// </summary>
 		/// <value>The edits.</value>
-		public IReadOnlyDictionary<long,byte> Edits => edits;
+		public IReadOnlyDictionary<long, byte> Edits => edits;
 
 		/// <summary>
-		/// This method applies the edits to the stream and resets the contents of the Edits property
+		/// This method applies andy edits made to the <see cref="Stream"/> and resets the 
+		/// contents of the <see cref="Edits"/> property
 		/// </summary>
 		public void ApplyEdits ()
 		{

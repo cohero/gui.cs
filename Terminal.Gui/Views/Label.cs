@@ -8,33 +8,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NStack;
 
 namespace Terminal.Gui {
 	/// <summary>
-	/// Text alignment enumeration, controls how text is displayed.
-	/// </summary>
-	public enum TextAlignment {
-		/// <summary>
-		/// Aligns the text to the left of the frame.
-		/// </summary>
-		Left, 
-		/// <summary>
-		/// Aligns the text to the right side of the frame.
-		/// </summary>
-		Right, 
-		/// <summary>
-		/// Centers the text in the frame.
-		/// </summary>
-		Centered, 
-		/// <summary>
-		/// Shows the line as justified text in the line.
-		/// </summary>
-		Justified
-	}
-
-	/// <summary>
-	/// Label view, displays a string at a given position, can include multiple lines.
+	/// The Label <see cref="View"/> displays a string at a given position and supports multiple lines separted by newline characters. Multi-line Labels support word wrap.
 	/// </summary>
 	public class Label : View {
 		List<ustring> lines = new List<ustring> ();
@@ -64,29 +43,59 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		///   Public constructor: creates a label at the given
-		///   coordinate with the given string, computes the bounding box
-		///   based on the size of the string, assumes that the string contains
-		///   newlines for multiple lines, no special breaking rules are used.
+		///   Initializes a new instance of <see cref="Label"/> using <see cref="LayoutStyle.Absolute"/> layout.
 		/// </summary>
+		/// <remarks>
+		/// <para>
+		///   The <see cref="Label"/> will be created at the given
+		///   coordinates with the given string. The size (<see cref="View.Frame"/> will be 
+		///   adjusted to fit the contents of <see cref="Text"/>, including newlines ('\n') for multiple lines. 
+		/// </para>
+		/// <para>
+		///   No line wrapping is provided.
+		/// </para>
+		/// </remarks>
+		/// <param name="x">column to locate the Label.</param>
+		/// <param name="y">row to locate the Label.</param>
+		/// <param name="text">text to initialize the <see cref="Text"/> property with.</param>
 		public Label (int x, int y, ustring text) : this (CalcRect (x, y, text), text)
 		{
 		}
 
 		/// <summary>
-		///   Public constructor: creates a label at the given
-		///   coordinate with the given string and uses the specified
-		///   frame for the string.
+		///   Initializes a new instance of <see cref="Label"/> using <see cref="LayoutStyle.Absolute"/> layout.
 		/// </summary>
+		/// <remarks>
+		/// <para>
+		///   The <see cref="Label"/> will be created at the given
+		///   coordinates with the given string. The initial size (<see cref="View.Frame"/> will be 
+		///   adjusted to fit the contents of <see cref="Text"/>, including newlines ('\n') for multiple lines. 
+		/// </para>
+		/// <para>
+		///   If <c>rect.Height</c> is greater than one, word wrapping is provided.
+		/// </para>
+		/// </remarks>
+		/// <param name="rect">Location.</param>
+		/// <param name="text">text to initialize the <see cref="Text"/> property with.</param>
 		public Label (Rect rect, ustring text) : base (rect)
 		{
 			this.text = text;
 		}
 
 		/// <summary>
-		/// Public constructor: creates a label and configures the default Width and Height based on the text, the result is suitable for Computed layout.
+		///   Initializes a new instance of <see cref="Label"/> using <see cref="LayoutStyle.Computed"/> layout.
 		/// </summary>
-		/// <param name="text">Text.</param>
+		/// <remarks>
+		/// <para>
+		///   The <see cref="Label"/> will be created using <see cref="LayoutStyle.Computed"/>
+		///   coordinates with the given string. The initial size (<see cref="View.Frame"/> will be 
+		///   adjusted to fit the contents of <see cref="Text"/>, including newlines ('\n') for multiple lines. 
+		/// </para>
+		/// <para>
+		///   If <c>Height</c> is greater than one, word wrapping is provided.
+		/// </para>
+		/// </remarks>
+		/// <param name="text">text to initialize the <see cref="Text"/> property with.</param>
 		public Label (ustring text) : base ()
 		{
 			this.text = text;
@@ -95,12 +104,27 @@ namespace Terminal.Gui {
 			Height = r.Height;
 		}
 
+		/// <summary>
+		///   Initializes a new instance of <see cref="Label"/> using <see cref="LayoutStyle.Computed"/> layout.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		///   The <see cref="Label"/> will be created using <see cref="LayoutStyle.Computed"/>
+		///   coordinates. The initial size (<see cref="View.Frame"/> will be 
+		///   adjusted to fit the contents of <see cref="Text"/>, including newlines ('\n') for multiple lines. 
+		/// </para>
+		/// <para>
+		///   If <c>Height</c> is greater than one, word wrapping is provided.
+		/// </para>
+		/// </remarks>
+		public Label () : this (text: string.Empty) { }
+
 		static char [] whitespace = new char [] { ' ', '\t' };
 
 		static ustring ClipAndJustify (ustring str, int width, TextAlignment talign)
 		{
 			int slen = str.RuneCount;
-			if (slen > width){
+			if (slen > width) {
 				var uints = str.ToRunes (width);
 				var runes = new Rune [uints.Length];
 				for (int i = 0; i < uints.Length; i++)
@@ -109,11 +133,11 @@ namespace Terminal.Gui {
 			} else {
 				if (talign == TextAlignment.Justified) {
 					// TODO: ustring needs this
-			               	var words = str.ToString ().Split (whitespace, StringSplitOptions.RemoveEmptyEntries);
+					var words = str.ToString ().Split (whitespace, StringSplitOptions.RemoveEmptyEntries);
 					int textCount = words.Sum (arg => arg.Length);
 
-					var spaces = (width- textCount) / (words.Length - 1);
-					var extras = (width - textCount) % words.Length;
+					var spaces = words.Length > 1 ? (width - textCount) / (words.Length - 1) : 0;
+					var extras = words.Length > 1 ? (width - textCount) % words.Length : 0;
 
 					var s = new System.Text.StringBuilder ();
 					//s.Append ($"tc={textCount} sp={spaces},x={extras} - ");
@@ -124,7 +148,7 @@ namespace Terminal.Gui {
 							for (int i = 0; i < spaces; i++)
 								s.Append (' ');
 						if (extras > 0) {
-							s.Append ('_');
+							//s.Append ('_');
 							extras--;
 						}
 					}
@@ -137,30 +161,94 @@ namespace Terminal.Gui {
 		void Recalc ()
 		{
 			recalcPending = false;
-			Recalc (text, lines, Frame.Width, textAlignment);
+			Recalc (text, lines, Frame.Width, textAlignment, Bounds.Height > 1);
 		}
 
-		static void Recalc (ustring textStr, List<ustring> lineResult, int width, TextAlignment talign)
+		static ustring StripCRLF (ustring str)
+		{
+			var runes = new List<Rune> ();
+			foreach (var r in str.ToRunes ()) {
+				if (r != '\r' && r != '\n') {
+					runes.Add (r);
+				}
+			}
+			return ustring.Make (runes); ;
+		}
+		static ustring ReplaceCRLFWithSpace (ustring str)
+		{
+			var runes = new List<Rune> ();
+			foreach (var r in str.ToRunes ()) {
+				if (r == '\r' || r == '\n') {
+					runes.Add (new Rune (' ')); // r + 0x2400));         // U+25A1 □ WHITE SQUARE
+				} else {
+					runes.Add (r);
+				}
+			}
+			return ustring.Make (runes); ;
+		}
+
+		static List<ustring> WordWrap (ustring text, int margin)
+		{
+			int start = 0, end;
+			var lines = new List<ustring> ();
+
+			text = StripCRLF (text);
+
+			while ((end = start + margin) < text.Length) {
+				while (text [end] != ' ' && end > start)
+					end -= 1;
+
+				if (end == start)
+					end = start + margin;
+
+				lines.Add (text [start, end]);
+				start = end + 1;
+			}
+
+			if (start < text.Length)
+				lines.Add (text.Substring (start));
+
+			return lines;
+		}
+
+		static void Recalc (ustring textStr, List<ustring> lineResult, int width, TextAlignment talign, bool wordWrap)
 		{
 			lineResult.Clear ();
-			if (textStr.IndexOf ('\n') == -1) {
+
+			if (wordWrap == false) {
+				textStr = ReplaceCRLFWithSpace (textStr);
 				lineResult.Add (ClipAndJustify (textStr, width, talign));
 				return;
 			}
+
 			int textLen = textStr.Length;
 			int lp = 0;
 			for (int i = 0; i < textLen; i++) {
 				Rune c = textStr [i];
-
 				if (c == '\n') {
-					lineResult.Add (ClipAndJustify (textStr [lp, i], width, talign));
+					var wrappedLines = WordWrap (textStr [lp, i], width);
+					foreach (var line in wrappedLines) {
+						lineResult.Add (ClipAndJustify (line, width, talign));
+					}
+					if (wrappedLines.Count == 0) {
+						lineResult.Add (ustring.Empty);
+					}
 					lp = i + 1;
 				}
 			}
-			lineResult.Add(ClipAndJustify(textStr[lp, textLen], width, talign));
+			foreach (var line in WordWrap (textStr [lp, textLen], width)) {
+				lineResult.Add (ClipAndJustify (line, width, talign));
+			}
 		}
 
-		public override void Redraw (Rect region)
+		///<inheritdoc/>
+		public override void LayoutSubviews ()
+		{
+			recalcPending = true;
+		}
+
+		///<inheritdoc/>
+		public override void Redraw (Rect bounds)
 		{
 			if (recalcPending)
 				Recalc ();
@@ -171,22 +259,23 @@ namespace Terminal.Gui {
 				Driver.SetAttribute (ColorScheme.Normal);
 
 			Clear ();
-			Move (Frame.X, Frame.Y);
 			for (int line = 0; line < lines.Count; line++) {
-				if (line < region.Top || line > region.Bottom)
+				if (line < bounds.Top || line >= bounds.Bottom)
 					continue;
 				var str = lines [line];
 				int x;
 				switch (textAlignment) {
 				case TextAlignment.Left:
-				case TextAlignment.Justified:
 					x = 0;
 					break;
+				case TextAlignment.Justified:
+					x = Bounds.Left;
+					break;
 				case TextAlignment.Right:
-					x = Frame.Right - str.Length;
+					x = Bounds.Right - str.Length;
 					break;
 				case TextAlignment.Centered:
-					x = Frame.Left + (Frame.Width - str.Length) / 2;
+					x = Bounds.Left + (Bounds.Width - str.Length) / 2;
 					break;
 				default:
 					throw new ArgumentOutOfRangeException ();
@@ -197,7 +286,7 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		/// Computes the number of lines needed to render the specified text by the Label control
+		/// Computes the number of lines needed to render the specified text by the <see cref="Label"/> view
 		/// </summary>
 		/// <returns>Number of lines.</returns>
 		/// <param name="text">Text, may contain newlines.</param>
@@ -205,25 +294,38 @@ namespace Terminal.Gui {
 		public static int MeasureLines (ustring text, int width)
 		{
 			var result = new List<ustring> ();
-			Recalc (text, result, width, TextAlignment.Left);
+			Recalc (text, result, width, TextAlignment.Left, true);
 			return result.Count;
 		}
 
 		/// <summary>
-		/// Computes the the max width of a line or multilines needed to render by the Label control
+		/// Computes the max width of a line or multilines needed to render by the Label control
 		/// </summary>
 		/// <returns>Max width of lines.</returns>
 		/// <param name="text">Text, may contain newlines.</param>
 		/// <param name="width">The width for the text.</param>
-		public static int MaxWidth(ustring text, int width)
+		public static int MaxWidth (ustring text, int width)
 		{
-			var result = new List<ustring>();
-			Recalc(text, result, width, TextAlignment.Left);
-			return result.Max(s => s.RuneCount);
+			var result = new List<ustring> ();
+			Recalc (text, result, width, TextAlignment.Left, true);
+			return result.Max (s => s.RuneCount);
 		}
 
 		/// <summary>
-		///   The text displayed by this widget.
+		/// Computes the max height of a line or multilines needed to render by the Label control
+		/// </summary>
+		/// <returns>Max height of lines.</returns>
+		/// <param name="text">Text, may contain newlines.</param>
+		/// <param name="width">The width for the text.</param>
+		public static int MaxHeight (ustring text, int width)
+		{
+			var result = new List<ustring> ();
+			Recalc (text, result, width, TextAlignment.Left, true);
+			return result.Count;
+		}
+
+		/// <summary>
+		///   The text displayed by the <see cref="Label"/>.
 		/// </summary>
 		public virtual ustring Text {
 			get => text;
@@ -235,7 +337,7 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		/// Controls the text-alignemtn property of the label, changing it will redisplay the label.
+		/// Controls the text-alignment property of the label, changing it will redisplay the <see cref="Label"/>.
 		/// </summary>
 		/// <value>The text alignment.</value>
 		public TextAlignment TextAlignment {
@@ -248,8 +350,8 @@ namespace Terminal.Gui {
 
 		Attribute textColor = -1;
 		/// <summary>
-		///   The color used for the label
-		/// </summary>        
+		///   The color used for the <see cref="Label"/>.
+		/// </summary>
 		public Attribute TextColor {
 			get => textColor;
 			set {

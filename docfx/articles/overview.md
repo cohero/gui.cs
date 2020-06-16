@@ -1,8 +1,7 @@
-Overview
-========
+# Terminal.Gui API Overview
 
 `Terminal.Gui` is a library intended to create console-based
-applications using C#.  The framework has been designed to make it
+applications using C#. The framework has been designed to make it
 easy to write applications that will work on monochrome terminals, as
 well as modern color terminals with mouse support.
 
@@ -128,7 +127,7 @@ void SetupMyView (View myView)
         Y = 2,
         Width = 30,
         Height = 1
-    }
+    };
     myView.Add (username);
 }
 ```
@@ -386,14 +385,26 @@ to background views when a modal view is running.
 
 More details are available on the [`Keyboard Event Processing`](keyboard.html) document.
 
-Color Schemes
-=============
+Colors and Color Schemes
+========================
 
 All views have been configured with a color scheme that will work both in color
 terminals as well as the more limited black and white terminals.   
 
 The various styles are captured in the [`Colors`](../api/Terminal.Gui/Terminal.Gui.Colors.html) class which defined color schemes for
-the normal views, the menu bar, popup dialog boxes and error dialog boxes.
+the normal views, the menu bar, popup dialog boxes and error dialog boxes, that you can use like this:
+
+* `Colors.Base`
+* `Colors.Menu`
+* `Colors.Dialog`
+* `Colors.Error`
+
+You can use them for example like this to set the colors for a new Window:
+
+```
+var w = new Window ("Hello");
+w.ColorScheme = Colors.Error
+```
 
 The [`ColorScheme`](../api/Terminal.Gui/Terminal.Gui.ColorScheme.html) represents
 four values, the color used for Normal text, the color used for normal text when
@@ -401,6 +412,15 @@ a view is focused an the colors for the hot-keys both in focused and unfocused m
 
 By using `ColorSchemes` you ensure that your application will work correctbly both
 in color and black and white terminals.
+
+Some views support setting individual color attributes, you create an
+attribute for a particular pair of Foreground/Background like this:
+
+```
+var myColor = Application.Driver.MakeAttribute (Color.Blue, Color.Red);
+var label = new Label (...);
+label.TextColor = myColor
+```
 
 MainLoop, Threads and Input Handling
 ====================================

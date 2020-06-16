@@ -5,21 +5,22 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Overview </title>
+    <title>Terminal.Gui API Overview </title>
     <meta name="viewport" content="width=device-width">
-    <meta name="title" content="Overview ">
-    <meta name="generator" content="docfx 2.18.2.0">
+    <meta name="title" content="Terminal.Gui API Overview ">
+    <meta name="generator" content="docfx 2.54.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
     <link rel="stylesheet" href="../styles/docfx.css">
     <link rel="stylesheet" href="../styles/main.css">
-    <meta property="docfx:navrel" content="">
-    <meta property="docfx:tocrel" content="">
+    <meta property="docfx:navrel" content="../toc.html">
+    <meta property="docfx:tocrel" content="../toc.html">
     
+    <meta property="docfx:rel" content="../">
     
   </head>
-  <body data-spy="scroll" data-target="#affix">
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
     <div id="wrapper">
       <header>
         
@@ -34,7 +35,7 @@
               </button>
               
               <a class="navbar-brand" href="../index.html">
-                <img id="logo" class="svg" src="../logo.svg" alt="">
+                <img id="logo" class="svg" src="../images/logo48.png" alt="">
               </a>
             </div>
             <div class="collapse navbar-collapse" id="navbar">
@@ -55,14 +56,24 @@
           </div>
         </div>
       </header>
+      <div class="container body-content">
+        
+        <div id="search-results">
+          <div class="search-list"></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination"></ul>
+        </div>
+      </div>
       <div role="main" class="container body-content hide-when-search">
         <div class="article row grid">
           <div class="col-md-10">
             <article class="content wrap" id="_content" data-uid="">
-<h1 id="overview">Overview</h1>
+<h1 id="terminalgui-api-overview">Terminal.Gui API Overview</h1>
 
 <p><code>Terminal.Gui</code> is a library intended to create console-based
-applications using C#.  The framework has been designed to make it
+applications using C#. The framework has been designed to make it
 easy to write applications that will work on monochrome terminals, as
 well as modern color terminals with mouse support.</p>
 <p>This library works across Windows, Linux and MacOS.</p>
@@ -165,7 +176,7 @@ the Subviews.   You can add a view to an existing view, by calling the
         Y = 2,
         Width = 30,
         Height = 1
-    }
+    };
     myView.Add (username);
 }
 </code></pre><p>The container of a given view is called the <code>SuperView</code> and it is a property of every
@@ -361,17 +372,31 @@ currently focused view.</p>
 view on the screen.   The only exception is that no mouse events are delivered
 to background views when a modal view is running.   </p>
 <p>More details are available on the <a href="keyboard.html"><code>Keyboard Event Processing</code></a> document.</p>
-<h1 id="color-schemes">Color Schemes</h1>
+<h1 id="colors-and-color-schemes">Colors and Color Schemes</h1>
 <p>All views have been configured with a color scheme that will work both in color
 terminals as well as the more limited black and white terminals.   </p>
 <p>The various styles are captured in the <a href="../api/Terminal.Gui/Terminal.Gui.Colors.html"><code>Colors</code></a> class which defined color schemes for
-the normal views, the menu bar, popup dialog boxes and error dialog boxes.</p>
-<p>The <a href="../api/Terminal.Gui/Terminal.Gui.ColorScheme.html"><code>ColorScheme</code></a> represents
+the normal views, the menu bar, popup dialog boxes and error dialog boxes, that you can use like this:</p>
+<ul>
+<li><code>Colors.Base</code></li>
+<li><code>Colors.Menu</code></li>
+<li><code>Colors.Dialog</code></li>
+<li><code>Colors.Error</code></li>
+</ul>
+<p>You can use them for example like this to set the colors for a new Window:</p>
+<pre><code>var w = new Window (&quot;Hello&quot;);
+w.ColorScheme = Colors.Error
+</code></pre><p>The <a href="../api/Terminal.Gui/Terminal.Gui.ColorScheme.html"><code>ColorScheme</code></a> represents
 four values, the color used for Normal text, the color used for normal text when
 a view is focused an the colors for the hot-keys both in focused and unfocused modes.</p>
 <p>By using <code>ColorSchemes</code> you ensure that your application will work correctbly both
 in color and black and white terminals.</p>
-<h1 id="mainloop-threads-and-input-handling">MainLoop, Threads and Input Handling</h1>
+<p>Some views support setting individual color attributes, you create an
+attribute for a particular pair of Foreground/Background like this:</p>
+<pre><code>var myColor = Application.Driver.MakeAttribute (Color.Blue, Color.Red);
+var label = new Label (...);
+label.TextColor = myColor
+</code></pre><h1 id="mainloop-threads-and-input-handling">MainLoop, Threads and Input Handling</h1>
 <p>Detailed description of the mainlop is described on the <a href="mainloop.html">Event Processing and the Application Main Loop</a> document.</p>
 </article>
           </div>
@@ -380,9 +405,6 @@ in color and black and white terminals.</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/migueldeicaza/gui.cs/blob/master/docfx/articles/overview.md/#L1" class="contribution-link">Improve this Doc</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
@@ -401,7 +423,7 @@ in color and black and white terminals.</p>
               <a href="#top">Back to top</a>
             </span>
             
-            <span>Copyright © 2015-2017 Microsoft<br>Generated by <strong>DocFX</strong></span>
+            <span>Generated by <strong>DocFX</strong></span>
           </div>
         </div>
       </footer>

@@ -1,4 +1,4 @@
-﻿//
+//
 // TextView.cs: multi-line text editing
 //
 // Authors:
@@ -39,11 +39,25 @@ namespace Terminal.Gui {
 			if (file == null)
 				throw new ArgumentNullException (nameof (file));
 			try {
+				FilePath = file;
 				var stream = File.OpenRead (file);
 			} catch {
 				return false;
 			}
 			LoadStream (File.OpenRead (file));
+			return true;
+		}
+
+		public bool CloseFile ()
+		{
+			if (FilePath == null)
+				throw new ArgumentNullException (nameof (FilePath));
+			try {
+				FilePath = null;
+				lines = new List<List<Rune>> ();
+			} catch {
+				return false;
+			}
 			return true;
 		}
 
@@ -120,6 +134,8 @@ namespace Terminal.Gui {
 			return sb.ToString ();
 		}
 
+		public string FilePath { get; set; }
+
 		/// <summary>
 		/// The number of text lines in the model
 		/// </summary>
@@ -153,11 +169,11 @@ namespace Terminal.Gui {
 	}
 
 	/// <summary>
-	///   Multi-line text editing view
+	///   Multi-line text editing <see cref="View"/>
 	/// </summary>
 	/// <remarks>
 	///   <para>
-	///     The text view provides a multi-line text view.   Users interact
+	///     <see cref="TextView"/> provides a multi-line text editor. Users interact
 	///     with it with the standard Emacs commands for movement or the arrow
 	///     keys. 
 	///   </para> 
@@ -266,6 +282,11 @@ namespace Terminal.Gui {
 		bool selecting;
 		//bool used;
 
+		/// <summary>
+		/// Raised when the <see cref="Text"/> of the <see cref="TextView"/> changes.
+		/// </summary>
+		public Action TextChanged;
+
 #if false
 		/// <summary>
 		///   Changed event, raised when the text has clicked.
@@ -274,10 +295,10 @@ namespace Terminal.Gui {
 		///   Client code can hook up to this event, it is
 		///   raised when the text in the entry changes.
 		/// </remarks>
-		public event EventHandler Changed;
+		public Action Changed;
 #endif
 		/// <summary>
-		///   Public constructor, creates a view on the specified area, with absolute position and size.
+		///   Initalizes a <see cref="TextView"/> on the specified area, with absolute position and size.
 		/// </summary>
 		/// <remarks>
 		/// </remarks>
@@ -287,7 +308,8 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		/// Public constructor, creates a view on the specified area, with dimensions controlled with the X, Y, Width and Height properties.
+		///   Initalizes a <see cref="TextView"/> on the specified area, 
+		///   with dimensions controlled with the X, Y, Width and Height properties.
 		/// </summary>
 		public TextView () : base ()
 		{
@@ -300,7 +322,7 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		///   Sets or gets the text in the entry.
+		///   Sets or gets the text in the <see cref="TextView"/>.
 		/// </summary>
 		/// <remarks>
 		/// </remarks>
@@ -312,12 +334,13 @@ namespace Terminal.Gui {
 			set {
 				ResetPosition ();
 				model.LoadString (value);
+				TextChanged?.Invoke ();
 				SetNeedsDisplay ();
 			}
 		}
 
 		/// <summary>
-		/// Loads the contents of the file into the TextView.
+		/// Loads the contents of the file into the  <see cref="TextView"/>.
 		/// </summary>
 		/// <returns><c>true</c>, if file was loaded, <c>false</c> otherwise.</returns>
 		/// <param name="path">Path to the file to load.</param>
@@ -332,7 +355,7 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		/// Loads the contents of the stream into the TextView.
+		/// Loads the contents of the stream into the  <see cref="TextView"/>.
 		/// </summary>
 		/// <returns><c>true</c>, if stream was loaded, <c>false</c> otherwise.</returns>
 		/// <param name="stream">Stream to load the contents from.</param>
@@ -346,7 +369,19 @@ namespace Terminal.Gui {
 		}
 
 		/// <summary>
-		///    The current cursor row.
+		/// Closes the contents of the stream into the  <see cref="TextView"/>.
+		/// </summary>
+		/// <returns><c>true</c>, if stream was closed, <c>false</c> otherwise.</returns>
+		public bool CloseFile()
+		{
+			ResetPosition ();
+			var res = model.CloseFile ();
+			SetNeedsDisplay ();
+			return res;
+		}
+
+		/// <summary>
+		///    Gets the current cursor row.
 		/// </summary>
 		public int CurrentRow => currentRow;
 
@@ -395,7 +430,7 @@ namespace Terminal.Gui {
 		bool isReadOnly = false;
 
 		/// <summary>
-		/// Indicates readonly attribute of TextView
+		/// Gets or sets whether the  <see cref="TextView"/> is in read-only mode or not
 		/// </summary>
 		/// <value>Boolean value(Default false)</value>
 		public bool ReadOnly {
@@ -489,35 +524,32 @@ namespace Terminal.Gui {
 			SetNeedsDisplay ();
 		}
 
-		/// <summary>
-		/// Redraw the text editor region 
-		/// </summary>
-		/// <param name="region">The region to redraw.</param>
-		public override void Redraw (Rect region)
+		///<inheritdoc/>
+		public override void Redraw (Rect bounds)
 		{
 			ColorNormal ();
 
-			int bottom = region.Bottom;
-			int right = region.Right;
-			for (int row = region.Top; row < bottom; row++) 
+			int bottom = bounds.Bottom;
+			int right = bounds.Right;
+			for (int row = bounds.Top; row < bottom; row++) 
 			{
 				int textLine = topRow + row;
 				if (textLine >= model.Count) 
 				{
 					ColorNormal ();
-					ClearRegion (region.Left, row, region.Right, row + 1);
+					ClearRegion (bounds.Left, row, bounds.Right, row + 1);
 					continue;
 				}
 				var line = model.GetLine (textLine);
 				int lineRuneCount = line.Count;
-				if (line.Count < region.Left)
+				if (line.Count < bounds.Left)
 				{
-					ClearRegion (region.Left, row, region.Right, row + 1);
+					ClearRegion (bounds.Left, row, bounds.Right, row + 1);
 					continue;
 				}
 
-				Move (region.Left, row);
-				for (int col = region.Left; col < right; col++) 
+				Move (bounds.Left, row);
+				for (int col = bounds.Left; col < right; col++) 
 				{
 					var lineCol = leftColumn + col;
 					var rune = lineCol >= lineRuneCount ? ' ' : line [lineCol];
@@ -532,6 +564,7 @@ namespace Terminal.Gui {
 			PositionCursor ();
 		}
 
+		///<inheritdoc/>
 		public override bool CanFocus {
 			get => true;
 			set { base.CanFocus = value; }
@@ -665,8 +698,21 @@ namespace Terminal.Gui {
 				PositionCursor ();
 		}
 
+		/// <summary>
+		/// Will scroll the <see cref="TextView"/> to display the specified row at the top
+		/// </summary>
+		/// <param name="row">Row that should be displayed at the top, if the value is negative it will be reset to zero</param>
+		public void ScrollTo (int row)
+		{
+			if (row < 0)
+				row = 0;
+			topRow = row > model.Count ? model.Count - 1 : row;
+			SetNeedsDisplay ();
+		}
+
 		bool lastWasKill;
 
+		///<inheritdoc/>
 		public override bool ProcessKey (KeyEvent kb)
 		{
 			int restCount;
@@ -725,32 +771,12 @@ namespace Terminal.Gui {
 
 			case Key.ControlN:
 			case Key.CursorDown:
-				if (currentRow + 1 < model.Count) {
-					if (columnTrack == -1)
-						columnTrack = currentColumn;
-					currentRow++;
-					if (currentRow >= topRow + Frame.Height) {
-						topRow++;
-						SetNeedsDisplay ();
-					}
-					TrackColumn ();
-					PositionCursor ();
-				}
+				MoveDown ();
 				break;
 
 			case Key.ControlP:
 			case Key.CursorUp:
-				if (currentRow > 0) {
-					if (columnTrack == -1)
-						columnTrack = currentColumn;
-					currentRow--;
-					if (currentRow < topRow) {
-						topRow--;
-						SetNeedsDisplay ();
-					}
-					TrackColumn ();
-					PositionCursor ();
-				}
+				MoveUp ();
 				break;
 
 			case Key.ControlF:
@@ -792,7 +818,7 @@ namespace Terminal.Gui {
 						currentRow--;
 						if (currentRow < topRow) {
 							topRow--;
-
+							SetNeedsDisplay ();
 						}
 						currentLine = GetCurrentLine ();
 						currentColumn = currentLine.Count;
@@ -975,7 +1001,19 @@ namespace Terminal.Gui {
 				if (fullNeedsDisplay)
 					SetNeedsDisplay ();
 				else
-					SetNeedsDisplay (new Rect (0, currentRow - topRow, 0, Frame.Height));
+					SetNeedsDisplay (new Rect (0, currentRow - topRow, 2, Frame.Height));
+				break;
+
+			case Key.CtrlMask | Key.End:
+				currentRow = model.Count;
+				TrackColumn ();
+				PositionCursor ();
+				break;
+
+			case Key.CtrlMask | Key.Home:
+				currentRow = 0;
+				TrackColumn ();
+				PositionCursor ();
 				break;
 
 			default:
@@ -995,6 +1033,36 @@ namespace Terminal.Gui {
 				return true;
 			}
 			return true;
+		}
+
+		private void MoveUp ()
+		{
+			if (currentRow > 0) {
+				if (columnTrack == -1)
+					columnTrack = currentColumn;
+				currentRow--;
+				if (currentRow < topRow) {
+					topRow--;
+					SetNeedsDisplay ();
+				}
+				TrackColumn ();
+				PositionCursor ();
+			}
+		}
+
+		private void MoveDown ()
+		{
+			if (currentRow + 1 < model.Count) {
+				if (columnTrack == -1)
+					columnTrack = currentColumn;
+				currentRow++;
+				if (currentRow >= topRow + Frame.Height) {
+					topRow++;
+					SetNeedsDisplay ();
+				}
+				TrackColumn ();
+				PositionCursor ();
+			}
 		}
 
 		IEnumerable<(int col, int row, Rune rune)> ForwardIterator (int col, int row)
@@ -1124,29 +1192,40 @@ namespace Terminal.Gui {
 			return null;
 		}
 
+		///<inheritdoc/>
 		public override bool MouseEvent (MouseEvent ev)
 		{
-			if (!ev.Flags.HasFlag (MouseFlags.Button1Clicked)) {
+			if (!ev.Flags.HasFlag (MouseFlags.Button1Clicked) &&
+				!ev.Flags.HasFlag (MouseFlags.WheeledDown) && !ev.Flags.HasFlag (MouseFlags.WheeledUp)) {
 				return false;
 			}
 
 			if (!HasFocus)
 				SuperView.SetFocus (this);
 
-
-			var maxCursorPositionableLine = (model.Count - 1) - topRow;
-			if (ev.Y > maxCursorPositionableLine) {
-				currentRow = maxCursorPositionableLine;
-			} else {
-				currentRow = ev.Y + topRow;
+			if (ev.Flags == MouseFlags.Button1Clicked) {
+				if (model.Count > 0) {
+					var maxCursorPositionableLine = (model.Count - 1) - topRow;
+					if (ev.Y > maxCursorPositionableLine) {
+						currentRow = maxCursorPositionableLine;
+					} else {
+						currentRow = ev.Y + topRow;
+					}
+					var r = GetCurrentLine ();
+					if (ev.X - leftColumn >= r.Count)
+						currentColumn = r.Count - leftColumn;
+					else
+						currentColumn = ev.X - leftColumn;
+				}
+				PositionCursor ();
+			} else if (ev.Flags == MouseFlags.WheeledDown) {
+				lastWasKill = false;
+				MoveDown ();
+			} else if (ev.Flags == MouseFlags.WheeledUp) {
+				lastWasKill = false;
+				MoveUp ();
 			}
-			var r = GetCurrentLine ();
-			if (ev.X - leftColumn >= r.Count)
-				currentColumn = r.Count - leftColumn;
-			else
-				currentColumn = ev.X - leftColumn;
 
-			PositionCursor ();
 			return true;
 		}
 	}

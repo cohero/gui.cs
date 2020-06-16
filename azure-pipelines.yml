@@ -6,8 +6,9 @@ variables:
 
 steps:
 - script: |
-    msbuild /t:Restore $TRAVIS_BUILD_DIR/Terminal.sln
+    msbuild /t:Restore Terminal.sln
   displayName: Restore dependencies
+
 
 - script: |
     if echo $BUILD_SOURCEBRANCH | grep /release/; then perl -pi -e "s/PackageVersion>.*</PackageVersion>${BUILD_SOURCEBRANCHNAME}</" Terminal.Gui/Terminal.Gui.csproj; fi
